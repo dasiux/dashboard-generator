@@ -1,0 +1,45 @@
+/**
+ * Media mixin
+ *
+ * Usage:
+ *  .style {
+ *    width: 80%;
+ *    @include mx-media('mobile') {
+ *      width: 100%;
+ *    }
+ *  }
+ */
+
+/**
+ * Default media query namings
+ */
+$mx-media-queries : (
+  mobile-x : 'screen and (max-width: 320px)',
+  mobile-s : 'screen and (max-width: 480px)',
+  mobile : 'screen and (max-width: 767px)',
+  mobile-tablet-portrait : 'screen and (max-width: 991px)',
+  tablet : 'screen and (min-width: 768px) and (max-width: 1024px)',
+  tablet-portrait : 'screen and (min-width: 768px) and (max-width: 991px)',
+  tablet-landscape : 'screen and (min-width: 992px) and (max-width: 1024px)',
+  tablet-desktop : 'screen and (min-width: 768px)',
+  tablet-landscape-desktop : 'screen and (min-width: 992px)',
+  desktop : 'screen and (min-width: 1025px)',
+  desktop-s : 'screen and (min-width: 1025px) and (max-width: 1199px)',
+  desktop-m : 'screen and (min-width: 1200px) and (max-width: 1439px)',
+  desktop-m-up : 'screen and (min-width: 1200px)',
+  desktop-l : 'screen and (min-width: 1440px) and (max-width: 1599px)',
+  desktop-xl : 'screen and (min-width: 1600px) and (max-width: 1919px)',
+  desktop-xxl : 'screen and (min-width: 1920px)',
+) !default;
+
+/**
+ * Media
+ *
+ * @param {string} query - Media name reference
+ * @param {Map} queries - Media query map to use
+ */
+@mixin mx-media($query, $queries: $mx-media-queries) {
+  @media #{map_get($queries,$query)} {
+    @content;
+  }
+}

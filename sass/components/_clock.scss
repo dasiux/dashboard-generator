@@ -1,0 +1,47 @@
+.clock {
+  opacity: $clock-opacity;
+  font-family: $clock-font;
+  font-size: $clock-size;
+  line-height: 1;
+}
+
+.date {
+  opacity: $clock-opacity;
+  display: block;
+  margin: 0;
+  padding: 0 $clock-size/10;
+}
+
+#clock {
+  pointer-events: none;
+  position: absolute;
+  width: auto;
+  text-shadow: 2px 2px rgba(0,0,0,0.2);
+
+  &[data-horizontal="left"] {
+    left: $clock-spacing;
+  }
+  &[data-horizontal="center"] {
+    left: 50%;
+    transform: translate(-50%, 0);
+    text-align: center;
+  }
+  &[data-horizontal="right"] {
+    right: $clock-spacing;
+    text-align: right;
+  }
+  &[data-vertical="top"] {
+    top: $clock-spacing;
+  }
+  &[data-vertical="center"] {
+    top: 50%;
+    transform: translate(0, -50%);
+
+    &[data-horizontal="center"] {
+      transform: translate(-50%, -50%);
+    }
+  }
+  &[data-vertical="bottom"] {
+    bottom: $clock-spacing;
+  }
+}

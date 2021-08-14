@@ -1,0 +1,351 @@
+.dashboard {
+  list-style: none;
+  margin: auto;
+  padding: 0;
+  max-width: calc(100% - #{$tree-spacing * 4});
+
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+
+  ul {
+    list-style: none;
+    display: block;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    display: block;
+    margin: 0;
+    padding: 0;
+  }
+
+  .dashboard {
+
+    &__heading {
+      position: relative;
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: center;
+      align-items: center;
+
+      @if ($style == 'simple' or $style == 'smooth' or $style == 'sharp') {
+        text-shadow: $shadow-text-offset $shadow-text-offset rgba($color-shadow, $opacity-shadowtext);
+      }
+      @if ($style == 'sharp') {
+        overflow: hidden;
+      }
+      transition: $transition-default;
+    }
+    &__label {
+      position: relative;
+      display: flex;
+      flex-grow: 1;
+      flex-wrap: nowrap;
+      justify-content: flex-start;
+      align-items: center;
+      margin: auto auto auto 0;
+    }
+    &__link {
+      position: relative;
+      display: flex;
+      flex-wrap: nowrap;
+      justify-content: center;
+      align-items: center;
+      padding: $tree-spacing #{$tree-spacing * 1.5} $tree-spacing $tree-spacing;
+
+      @if ($style == 'simple' or $style == 'smooth' or $style == 'sharp') {
+        text-shadow: $shadow-text-offset $shadow-text-offset rgba($color-shadow, $opacity-shadowtext);
+      }
+
+      @if ($style == 'sharp') {
+        background: rgba($color-background, 0);
+        outline: $tree-border solid transparent;
+      }
+
+      @if ($style == 'smooth') {
+        border-radius: #{$tree-border * 2};
+        background: linear-gradient(-90deg, rgba($color-plane, $opacity-plane), rgba($color-plane, 0));
+        background-position: right top;
+        background-repeat: no-repeat;
+        background-size: 0 100%;
+      }
+      transition: $transition-default;
+
+      .dashboard__label::after {
+        display: block;
+        margin: auto 0 auto auto;
+        padding: 0 $tree-spacing 0 0;
+        content: $tree-icon;
+        opacity: 0;
+        transition: $transition-default;
+      }
+
+      &--spacer {
+        pointer-events: none;
+        visibility: hidden;
+      }
+
+      &:not(.dashboard__link--spacer) {
+        &:hover,
+        &:focus {
+          padding: $tree-spacing $tree-spacing $tree-spacing #{$tree-spacing * 1.5};
+
+          @if ($style == 'simple' or $style == 'smooth' or $style == 'sharp') {
+            text-shadow: #{$shadow-text-offset * 1.1} #{$shadow-text-offset * 1.1} rgba($color-shadow, $opacity-shadowtext * 1.5);
+          }
+          @if ($style == 'sharp') {
+            background: rgba($color-background, $opacity-head);
+            outline: $tree-border solid rgba($color-text, $opacity-plane * 2);
+          }
+
+          @if ($style == 'smooth') {
+            background-size: 50% 100%;
+          }
+
+          .dashboard__label::after {
+            padding: 0 0 0 $tree-spacing;
+            opacity: 1;
+          }
+        }
+      }
+    }
+
+    &__group {
+      margin: #{$tree-spacing};
+      backdrop-filter: blur($tree-blur);
+      transition: $transition-default;
+
+      & > .dashboard__heading {
+        padding: $tree-spacing #{$tree-spacing * 2};
+
+        @if ($style == 'simple') {
+          border-top: $tree-border solid rgba($color-head, $opacity-head);
+          border-left: $tree-border solid rgba($color-head, $opacity-head);
+        }
+
+        @if ($style == 'smooth' or $style == 'sharp') {
+          background-color: rgba($color-head, $opacity-head);
+        }
+
+        @if ($style == 'smooth') {
+          border-radius: $tree-spacing $tree-spacing 0 0;
+          box-shadow: inset 0 $shadow-inset-offset $shadow-inset-offset 0 rgba($color-head, $opacity-shadowhead);
+        }
+        transition: $transition-default;
+      }
+
+      @if ($style == 'sharp') {
+        &:first-child > .dashboard__heading,
+        &:last-child > .dashboard__heading {
+          background-color: transparent;
+          background: linear-gradient(0deg, rgba($color-head, $opacity-head), rgba($color-head, $opacity-head));
+          background-position: left bottom;
+          background-repeat: no-repeat;
+          background-size: 100% calc(100% - #{$tree-spacing * 2});
+        }
+
+        &:first-child > .dashboard__heading {
+          &::after {
+            z-index: -1;
+            position: absolute;
+            content: '';
+            top: 0;
+            left: 0;
+            border-top: 0 solid transparent;
+            border-right: 100vw solid rgba($color-head, $opacity-head);
+            border-bottom: #{$tree-spacing * 2} solid rgba($color-head, $opacity-head);
+            border-left: #{$tree-spacing * 2} solid transparent;
+          }
+        }
+        &:last-child > .dashboard__heading {
+          &::after {
+            z-index: -1;
+            position: absolute;
+            content: '';
+            top: 0;
+            right: 0;
+            border-top: 0 solid transparent;
+            border-left: 100vw solid rgba($color-head, $opacity-head);
+            border-bottom: #{$tree-spacing * 2} solid rgba($color-head, $opacity-head);
+            border-right: #{$tree-spacing * 2} solid transparent;
+          }
+        }
+      }
+
+      @if ($style == 'smooth') {
+        &:first-child > .dashboard__heading {
+          border-radius: #{$tree-spacing * 2} $tree-spacing 0 0;
+        }
+
+        &:last-child > .dashboard__heading {
+          border-radius: $tree-spacing #{$tree-spacing * 2} 0 0;
+        }
+      }
+
+      & > .dashboard__list {
+        padding: $tree-spacing;
+
+        @if ($tree-nesting == 'none' and $style == 'simple') {
+          border-top: $tree-border solid rgba($color-plane, $opacity-plane);
+          border-left: $tree-border solid rgba($color-plane, $opacity-plane);
+        }
+
+        @if ($style == 'sharp') {
+          background-color: rgba($color-plane, $opacity-plane);
+        }
+
+        @if ($style == 'smooth') {
+          box-shadow: inset 0 $shadow-inset-offset #{$shadow-inset-offset * 0.8} 0 rgba($color-plane, $opacity-shadowplane);
+          background: linear-gradient(180deg, rgba($color-plane, $opacity-plane), rgba($color-plane, 0));
+          background-position: center top;
+          background-repeat: no-repeat;
+          background-size: 100% 60%;
+        }
+        transition: $transition-default;
+      }
+
+      &:hover,
+      &:focus-within {
+        backdrop-filter: blur(#{$tree-blur * 2});
+
+        & > .dashboard__heading {
+          @if ($style == 'smooth' or $style == 'sharp') {
+            background-color: rgba($color-head, $opacity-head * 1.8);
+          }
+
+          @if ($style == 'smooth') {
+            box-shadow: inset 0 $shadow-inset-offset $shadow-inset-offset 0 rgba($color-head, $opacity-shadowhead * 1.4);
+          }
+        }
+        & > .dashboard__list {
+          @if ($style == 'smooth') {
+            background-size: 100% 100%;
+          }
+        }
+      }
+      @if ($style == 'sharp') {
+        &:first-child:hover > .dashboard__heading,
+        &:first-child:focus-within > .dashboard__heading,
+        &:last-child:hover > .dashboard__heading,
+        &:last-child:focus-within > .dashboard__heading {
+          background-color: transparent;
+          background: linear-gradient(0deg, rgba($color-head, $opacity-head * 1.8), rgba($color-head, $opacity-head * 1.8));
+          background-position: left bottom;
+          background-repeat: no-repeat;
+          background-size: 100% calc(100% - #{$tree-spacing * 2});
+        }
+        &:first-child:hover > .dashboard__heading,
+        &:first-child:focus-within > .dashboard__heading {
+          &::after {
+            border-right: 100vw solid rgba($color-head, $opacity-head * 1.8);
+            border-bottom: #{$tree-spacing * 2} solid rgba($color-head, $opacity-head * 1.8);
+          }
+        }
+        &:last-child:hover > .dashboard__heading,
+        &:last-child:focus-within > .dashboard__heading {
+          &::after {
+            border-left: 100vw solid rgba($color-head, $opacity-head * 1.8);
+            border-bottom: #{$tree-spacing * 2} solid rgba($color-head, $opacity-head * 1.8);
+          }
+        }
+      }
+    }
+
+    &__list {
+
+      .dashboard__heading {
+        padding: $tree-spacing;
+
+        @if ($style == 'simple') {
+          border-top: $tree-border solid rgba($color-head, $opacity-head);
+          border-left: $tree-border solid rgba($color-head, $opacity-head);
+        }
+
+        @if ($tree-nesting == 'none') {
+
+          @if ($style == 'smooth' or $style == 'sharp') {
+            margin: $tree-spacing -#{$tree-spacing} 0 -#{$tree-spacing};
+          }
+        }
+      }
+
+      @if ($tree-nesting == 'indent') {
+
+        @if ($style == 'simple') {
+          border-left: $tree-border solid rgba($color-plane, $opacity-plane);
+        }
+
+        @if ($style == 'smooth' or $style == 'sharp') {
+          .dashboard__heading .dashboard__label {
+            &::before {
+              position: absolute;
+              top: 1em;
+              width: 100%;
+              opacity: $opacity-head * 1.5;
+              border-top: $tree-border solid $color-background;
+              border-bottom: $tree-border solid $color-text;
+              content: '';
+            }
+          }
+        }
+
+        .dashboard__list {
+          padding-left: $tree-indent;
+        }
+      }
+
+      @if ($tree-nesting == 'none') {
+
+        .dashboard__heading {
+          @if ($style == 'smooth' or $style == 'sharp') {
+            background-color: rgba($color-head, $opacity-head);
+          }
+
+          @if ($style == 'smooth') {
+            border-radius: #{$tree-border * 2} #{$tree-border * 2} 0 0;
+            box-shadow: inset 0 $shadow-inset-offset $shadow-inset-offset 0 rgba($color-head, $opacity-shadowhead);
+          }
+          transition: $transition-default;
+
+          & + .dashboard__list {
+            margin-left: -#{$tree-spacing};
+            margin-right: -#{$tree-spacing};
+            padding: $tree-spacing $tree-spacing 0;
+
+            @if ($style == 'smooth') {
+              background: linear-gradient(180deg, rgba($color-plane, $opacity-plane), rgba($color-plane, 0));
+              background-position: center top;
+              background-repeat: no-repeat;
+              background-size: 100% $tree-spacing;
+            }
+            transition: $transition-default;
+          }
+        }
+
+        & > .dashboard__item {
+          &:hover,
+          &:focus-within {
+            & > .dashboard__heading {
+              @if ($style == 'smooth' or $style == 'sharp') {
+                background-color: rgba($color-head, $opacity-head * 1.8);
+              }
+
+              @if ($style == 'smooth') {
+                box-shadow: inset 0 $shadow-inset-offset $shadow-inset-offset 0 rgba($color-head, $opacity-shadowhead * 1.4);
+              }
+
+              & + .dashboard__list {
+                @if ($style == 'smooth') {
+                  background-size: 100% #{$tree-spacing * 2};
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

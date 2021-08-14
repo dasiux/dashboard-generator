@@ -1,0 +1,43 @@
+{
+  "name": "dashboard-generator",
+  "version": "0.9.0",
+  "description": "Dashboard Generator, build a static html file with a tree of links.",
+  "main": "index.js",
+  "scripts": {
+    "styles": "node-sass sass/ -o dist/ --output-style compressed",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "dashg": "bin/cli"
+  },
+  "directories": {
+    "bin": "bin",
+    "sass": "sass",
+    "src": "src",
+    "template": "template"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dasiux/dashboard-generator.git"
+  },
+  "keywords": [
+    "node",
+    "dashboard",
+    "generator",
+    "creator"
+  ],
+  "author": "Daniel Hartwell <me@siux.info> (http://siux.info)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/dasiux/dashboard-generator/issues"
+  },
+  "homepage": "https://github.com/dasiux/dashboard-generator#readme",
+  "dependencies": {
+    "deepmerge": "^4.2.2",
+    "file-type": "^16.5.3",
+    "html-minifier": "^4.0.0",
+    "node-fetch": "^2.6.1",
+    "node-sass": "^5.0.0",
+    "twig": "^1.15.4"
+  }
+}

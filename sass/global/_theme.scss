@@ -1,0 +1,43 @@
+$transition-default: 0.3s ease !default;
+$transition-quick: 0.15s ease !default;
+
+// none, simple, smooth, sharp
+$style: none !default;
+
+// none, indent
+$tree-nesting: none !default;
+$tree-indent: 1em !default;
+$tree-border: 0.1em !default;
+$tree-spacing: 0.5em !default;
+$tree-icon: '\2794' !default;
+$tree-blur: 0.25em !default;
+
+$font-family: sans-serif !default;
+$font-size: 16px !default;
+$font-lineheight: 1.2 !default;
+
+$shadow-text-offset: 0.1em !default;
+$shadow-inset-offset: 0.18em !default;
+
+$color-text: white !default;
+$color-shadow: black !default;
+$color-head: black !default;
+$color-plane: white !default;
+$color-background: black !default;
+$color-gradient: #ee7752, #e73c7e, #23a6d5, #23d5ab !default;
+
+$opacity-shadowtext: 0.2 !default;
+$opacity-head: 0.1 !default;
+$opacity-shadowhead: 0.2 !default;
+$opacity-plane: 0.1 !default;
+$opacity-shadowplane: 0.1 !default;
+
+$clock-opacity: 0.3 !default;
+$clock-font: monospace !default;
+$clock-size: 3em !default;
+$clock-spacing: 2em !default;
+
+// none, gradient, gradient-animated, image
+$background-style: gradient !default;
+$background-angle: -45deg !default;
+$background-timing: 60s !default;

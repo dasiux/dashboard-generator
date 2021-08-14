@@ -1,0 +1,55 @@
+/**
+ * Globals
+ */
+body {
+  margin: 0;
+  padding: 0;
+
+  // This makes sure that any background is visible across the full viewport
+  min-height: 100vh;
+}
+
+/**
+ * Force global box-sizing
+ */
+* {
+  box-sizing: border-box;
+}
+
+/**
+ * Remove focus rect for all elements
+ */
+*:hover,
+*:active,
+*:focus {
+  outline: none;
+}
+
+/**
+ * Explicit Font Family elements
+ */
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  text-align: inherit;
+  color: inherit;
+  background-color: transparent;
+}
+
+/**
+ * Cleanup links
+ */
+a {
+  color: inherit;
+  text-decoration: none;
+  outline: none;
+
+  &:active,
+  &:focus,
+  &:hover,
+  &:visited {
+    text-decoration: none;
+    outline: none;
+  }
+}

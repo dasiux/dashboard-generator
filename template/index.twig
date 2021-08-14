@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html dir="ltr" lang="en">
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta charset="utf-8">
+    <meta content="IE=edge,chrome=1" http-equiv="X-UA-Compatible">
+    <meta content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0" name="viewport">
+    <title>{{ title }}</title>
+    <style type="text/css">{{ styles|raw }}</style>
+</head>
+<body>
+<main data-style="{{ theme.style }}"
+      class="background background--{{ theme.background.style }}"
+      data-length="{{ bgcount }}"
+      data-horizontal="{{ options.background.position.horizontal }}"
+      data-vertical="{{ options.background.position.vertical }}">
+    <section id="dashboard">
+        <header>
+            {% if logo is not empty %}
+                <img src="{{ logo }}" alt="{{ title }}" />
+            {% else %}
+                <h1>{{ title }}</h1>
+            {% endif %}
+        </header>
+        <ul class="dashboard">{% include "item.twig" with {'items':tree,'type':'group'} only %}</ul>
+    </section>
+    {% if options.clock %}
+        {% include "clock.twig" with {'clock':options.clock} only %}
+    {% endif %}
+</main>
+<footer>
+    <nav>
+        <a href="https://github.com/dasiux/dashboard-generator#readme">dashboard-generator</a>
+        <span>&copy; {{ year }}</span>
+        <a href="http://siux.info">siux.info</a>
+    </nav>
+</footer>
+<script type="text/javascript">{{ javascript|raw }}</script>
+</body>
+</html>

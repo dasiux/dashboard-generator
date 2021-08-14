@@ -1,0 +1,12 @@
+{% for label,item in items %}
+    <li class="dashboard__{{ type }}">
+        {% if item is iterable %}
+            <strong class="dashboard__heading"{{ label|icon }}><span class="dashboard__label">{{ label }}</span></strong>
+            <ul class="dashboard__list">{% include "item.twig" with {'items': item,'type':'item'} %}</ul>
+        {% elseif item == '#' %}
+            <span class="dashboard__link dashboard__link--spacer"><span class="dashboard__label">&nbsp;</span></span>
+        {% else %}
+            <a class="dashboard__link" href="{{ item }}"{{ label|icon }}><span class="dashboard__label">{{ label }}</span></a>
+        {% endif %}
+    </li>
+{% endfor %}

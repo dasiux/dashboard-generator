@@ -1,0 +1,26 @@
+### Windows ###
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+### OSX ###
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+### IntelliJ based IDE's like PhpStorm ###
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Much credit to http://gitignore.io
+
+### Internal ###
+test/
+dist/
+node_modules/
+package-lock.json

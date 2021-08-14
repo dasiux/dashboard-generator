@@ -1,0 +1,95 @@
+/**
+ * Background theme styles
+ */
+
+// Gradient animation
+@if ($background-style == 'gradient-animated') {
+  @keyframes background-gradient-animation {
+    0% {
+      top: 0;
+      left: 0;
+    }
+    30% {
+      top: 0;
+      left: -300%;
+    }
+    50% {
+      top: -300%;
+      left: -300%;
+    }
+    70% {
+      top: -300%;
+      left: 0;
+    }
+    100% {
+      top: 0;
+      left: 0;
+    }
+  }
+}
+
+.background {
+
+  @if ($background-style == 'image') {
+    &--image {
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-size: cover;
+    }
+  }
+
+  // Gradient shared base
+  @if ($background-style == 'gradient' or $background-style == 'gradient-animated') {
+    &--gradient,
+    &--gradient-animated {
+      &::before {
+        z-index: -1;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 300%;
+        height: 300%;
+        content: '';
+        background: linear-gradient($background-angle, $color-gradient);
+        background-size: 100% 100%;
+        background-position: 100% 100%;
+        transition: $transition-quick;
+      }
+    }
+  }
+
+  // Static gradient
+  @if ($background-style == 'gradient') {
+    &--gradient {
+      &[data-horizontal="left"]::before {
+        left: 0;
+      }
+      &[data-horizontal="center"]::before {
+        left: -100%;
+      }
+      &[data-horizontal="right"]::before {
+        left: -200%;
+      }
+      &[data-vertical="top"]::before {
+        top: 0;
+      }
+      &[data-vertical="center"]::before {
+        top: -100%;
+      }
+      &[data-vertical="bottom"]::before {
+        top: -200%;
+      }
+    }
+  }
+
+  // Animated gradient
+  @if ($background-style == 'gradient-animated') {
+    &--gradient-animated {
+      &::before {
+        width: 400%;
+        height: 400%;
+        animation: background-gradient-animation #{$background-timing} ease infinite;
+      }
+    }
+  }
+}

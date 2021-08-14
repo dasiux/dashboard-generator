@@ -1,0 +1,36 @@
+{
+  "options": {
+    "clock": {
+      "format": {
+        "date": null,
+        "time": null
+      },
+      "position": {
+        "horizontal": "center",
+        "vertical": "top"
+      }
+    },
+    "background": {
+      "position": {
+        "horizontal": null,
+        "vertical": null
+      }
+    },
+    "minify": {
+      "removeComments": true,
+      "collapseWhitespace": true,
+      "minifyJS": true
+    }
+  },
+  "theme": {
+    "style": "smooth",
+    "background": {
+      "style": "gradient"
+    }
+  },
+  "icons": {},
+  "title": "dashboard-generator 1.0.0",
+  "logo": null,
+  "background": null,
+  "tree": {}
+}
