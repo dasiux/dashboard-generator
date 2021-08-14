@@ -1,6 +1,11 @@
 # dashboard-generator
 Dashboard Generator
 
+## Install
+```
+npm i -g @dasiux/dashboard-generator
+```
+
 ## How to use
 
 Create a json file with following structure and fill the tree property with objects.
