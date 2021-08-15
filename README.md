@@ -1,5 +1,5 @@
 # dashboard-generator
-Dashboard Generator
+Dashboard Generator, build a static html file with a tree of links.
 
 ## Install
 ```

@@ -1,5 +1,5 @@
 /* global require, module, process, JSON */
-"use strict";
+'use strict';
 
 /**
  * Requires
@@ -12,6 +12,7 @@ const Twig = require( 'twig' );
 const sass = require( 'node-sass' );
 const merge = require( 'deepmerge' );
 const minify = require('html-minifier').minify;
+const cfx = require( '@squirrel-forge/node-cfx' ).cfx
 const strSlug = require( './strSlug' );
 const strCreate = require( './strCreate' );
 const trimChar = require( './trimChar' );
@@ -19,21 +20,48 @@ const parseInput = require( './parseInput' );
 
 /**
  * Dashboard Generator class
- *
  * @type {DashboardGenerator}
  */
 module.exports = class DashboardGenerator {
 
+    /**
+     * Constructor
+     * @param {string} dirname
+     */
     constructor( dirname ) {
-        this._bin = dirname;
+
+        // Local module directory
+        this._local = path.resolve( dirname, '../' );
+
+        // Current working directory
         this._cwd = process.cwd();
+
+        // Source json directory
+        this._loaded = null;
+
+        // Input arguments and options
         this._input = parseInput();
+
+        // Defaults
         this._defaults = null;
+
+        // Source data
+        this._source = null;
+
+        // Compiled data
         this._data = null;
+
+        // Dev mode
         this._dev = false;
+
+        // Supply twig with an icon filter
         this._extendTwig();
     }
 
+    /**
+     * Extend twig engine
+     * @private
+     */
     _extendTwig() {
         Twig.extendFilter('icon', ( value ) => {
             if ( typeof this._data.icons !== 'object' ) {
@@ -50,38 +78,140 @@ module.exports = class DashboardGenerator {
         } );
     }
 
-    async _local_json( file, base ) {
-        const content = await this._local_file( file, base );
-        let json;
-        try {
-            json = JSON.parse( content );
-        } catch ( e ) {
-            console.error( e );
-            json = null;
-        }
-        return json;
-    }
-
-    _local_file( file, base ) {
+    /**
+     * Read local file as buffer
+     * @private
+     * @param {string} file
+     * @param {string} enc
+     * @return {Promise<Buffer|null>}
+     */
+    _read_local( file, enc = 'utf8' ) {
         return new Promise( ( resolve ) => {
-            const load_path = this._local_path( file, base );
-            fs.readFile( load_path, 'utf8', ( err, content ) => {
+            fs.readFile( file, enc, ( err, content ) => {
                 if ( err ) {
-                    console.error( err );
+                    cfx.error( err );
                     resolve( null );
                 } else {
-                    resolve( content );
+                    const buffer = Buffer.from( content );
+                    resolve( buffer );
                 }
             } );
         } );
     }
 
+    /**
+     * Read remote file as buffer
+     * @private
+     * @param {string} file
+     * @return {Promise<Buffer|null>}
+     */
+    _read_remote( file ) {
+        return new Promise( ( resolve ) => {
+            fetch( file ).then( async ( res ) => {
+                const file_buffer = await res.buffer();
+                resolve( file_buffer );
+            } ).catch( ( err ) => {
+                cfx.error( err );
+                resolve( null );
+            } );
+        } );
+    }
+
+    /**
+     * Resolve file
+     * @private
+     * @param {string} file
+     * @param {null|string} enc
+     * @param {Object} from
+     * @return {Promise<{path, ext, content, type}|null>}
+     */
+    async _resolve_file( file, enc = null, from = null ) {
+        const options = { remote : true, cwd : true, local : true, json : true };
+        if ( from ) {
+            Object.assign( options, from );
+        }
+        const o = {};
+        if ( options.remote && file.substr( 0, 4 ) === 'http' ) {
+            o.path = file;
+            o.ext = path.extname( file );
+            o.content = await this._read_remote( file );
+            if ( !o.content ) {
+                return null;
+            }
+        } else {
+            let local, local_exists = false;
+            if ( options.json && this._loaded ) {
+                local = this._local_path( file, this._loaded );
+                local_exists = await this._local_exists( local );
+            }
+            if ( !local_exists && options.cwd ) {
+                local = this._local_path( file, this._cwd );
+                local_exists = await this._local_exists( local );
+            }
+            if ( !local_exists && options.local ) {
+                local = this._local_path( file, this._local );
+                local_exists = await this._local_exists( local );
+            }
+            if ( !local_exists ) {
+                return null;
+            }
+            o.path = local;
+            o.content = await this._read_local( local, enc );
+            o.content = Buffer.from( o.content );
+            o.ext = path.extname( local );
+        }
+        o.type = await fileType.fromBuffer( o.content );
+        return o;
+    }
+
+    /**
+     * Resolve text file
+     * @private
+     * @param {string} file
+     * @param {Object} from
+     * @return {Promise<{path, ext, content, type, text}|null>}
+     */
+    async _resolve_text( file, from = null ) {
+        const o = await this._resolve_file( file, 'utf8', from );
+        if ( o && o.content ) {
+            o.text = o.content.toString( 'utf8' );
+        }
+        return o;
+    }
+
+    /**
+     * Resolve json file
+     * @private
+     * @param {string} file
+     * @param {Object} from
+     * @return {Promise<{path, ext, content, type, json}|null>}
+     */
+    async _resolve_json( file, from = null ) {
+        const o = await this._resolve_text( file, from );
+        if ( o && o.content instanceof Buffer ) {
+            try {
+                o.json = JSON.parse( o.content.toString( 'utf8' ) );
+            } catch ( e ) {
+                cfx.error( e );
+                return null;
+            }
+        }
+        return o;
+    }
+
+    /**
+     * Resolve local path
+     * @private
+     * @param {string} file
+     * @param {string} base
+     * @return {string}
+     */
     _local_path( file, base ) {
         let load_path = file;
         if ( !( load_path.charAt( 0 ) === '/' || load_path.charAt( 0 ) === '.' ) ) {
             load_path = './' + load_path;
         }
-        if ( load_path && load_path.charAt( 0 ) === '.' ) {
+        if ( base && load_path && load_path.charAt( 0 ) === '.' ) {
             load_path = path.resolve( base, file );
         } else {
             load_path = path.resolve( file );
@@ -89,10 +219,21 @@ module.exports = class DashboardGenerator {
         return load_path;
     }
 
-    _local_exists( file, base ) {
+    /**
+     * Check if local file exists
+     * @private
+     * @param {string} file
+     * @param {string} base
+     * @param {string} type
+     * @return {Promise<boolean>}
+     */
+    _local_exists( file, base, type = 'R_OK' ) {
         return new Promise( ( resolve ) => {
-            const load_path = this._local_path( file, base );
-            fs.access( load_path, fs.constants.W_OK, ( err ) => {
+            let load_path = file;
+            if ( base ) {
+                load_path = this._local_path( file, base );
+            }
+            fs.access( load_path, fs.constants[ type ], ( err ) => {
                 if ( err ) {
                     resolve( false );
                 } else {
@@ -102,12 +243,19 @@ module.exports = class DashboardGenerator {
         } );
     }
 
-    _local_write( content, file, base ) {
+    /**
+     * Write local file
+     * @private
+     * @param {string} content
+     * @param {string} file
+     * @return {Promise<boolean>}
+     */
+    _local_write( content, file ) {
         return new Promise( ( resolve ) => {
-            const load_path = this._local_path( file, base );
+            const load_path = this._local_path( file, this._cwd );
             fs.writeFile( load_path, content, ( err ) => {
                 if ( err ) {
-                    console.error( 'fs.writeFile', err );
+                    cfx.error( err );
                     resolve( false );
                 } else {
                     resolve( true );
@@ -116,25 +264,19 @@ module.exports = class DashboardGenerator {
         } );
     }
 
-    async _load_source( input ) {
-        let source = null;
-        if ( input && input.length ) {
-            try {
-                source = await this._local_json( input, this._cwd );
-            } catch ( e ) {
-                console.error( e );
-                source = null;
-            }
-        }
-        return source;
-    }
-
+    /**
+     * Render template
+     * @private
+     * @param {Object} data
+     * @return {Promise<string>}
+     */
     _render_template( data ) {
-        return new Promise( ( resolve, reject ) => {
-            const template = path.resolve( this._bin, '../template/index.twig' );
+        return new Promise( ( resolve ) => {
+            const template = path.resolve( this._local, 'template/index.twig' );
             Twig.renderFile( template, data, ( err, html ) => {
                 if ( err ) {
-                    reject( err );
+                    cfx.error( err );
+                    resolve( null );
                 } else {
                     resolve( html );
                 }
@@ -142,11 +284,17 @@ module.exports = class DashboardGenerator {
         } );
     }
 
-    _render_styles( options ) {
+    /**
+     * Node sass render
+     * @private
+     * @param {Object} options
+     * @return {Promise<Object>}
+     */
+    _render_node_sass( options ) {
         return new Promise( ( resolve ) => {
             sass.render( options, ( err, result ) => {
                 if ( err ) {
-                    console.error( err );
+                    cfx.error( err );
                     resolve( null );
                 } else {
                     resolve( result );
@@ -155,6 +303,13 @@ module.exports = class DashboardGenerator {
         } );
     }
 
+    /**
+     * Get scss theme vars from json structure
+     * @private
+     * @param {Object} data
+     * @param {Array} path
+     * @return {[]}
+     */
     _theme_get_vars( data, path = [] ) {
         const vars = [];
         const keys = Object.keys( data );
@@ -162,7 +317,7 @@ module.exports = class DashboardGenerator {
             const k = keys[ i ];
             const curr_path = [ ...path ];
             curr_path.push( k );
-            if ( data[ k ] !== null ) {
+            if ( data[ k ] && data[ k ] !== null ) {
                 if ( typeof data[ k ] === 'object' ) {
                     const nested = this._theme_get_vars( data[ k ], curr_path );
                     vars.push( ...nested );
@@ -174,6 +329,13 @@ module.exports = class DashboardGenerator {
         return vars;
     }
 
+    /**
+     * Get list of unique icon slugs
+     * @private
+     * @param {Object} data
+     * @param {Set} slugs
+     * @return {Set<string>}
+     */
     _get_icon_slugs( data, slugs ) {
         slugs = slugs || new Set();
         const keys = Object.keys( data );
@@ -189,31 +351,34 @@ module.exports = class DashboardGenerator {
         return slugs;
     }
 
-    _generate_possible_icons() {
-        return [ ...this._get_icon_slugs( this._data.tree )];
-    }
-
-    _build_theme_vars() {
-        return this._theme_get_vars( this._data.theme ).join( '\n' );
-    }
-
-    async _build_icon_css() {
-        if ( !this._data.icons || !Object.keys( this._data.icons ).length ) {
+    /**
+     * Build theme icon image css
+     * @private
+     * @return {Promise<string>}
+     */
+    async _theme_css_icon_images() {
+        if ( !this._data.icons || typeof this._data.icons !== 'object' || !Object.keys( this._data.icons ).length ) {
             return '';
         }
-        const possible = this._generate_possible_icons();
+        const possible = [ ...this._get_icon_slugs( this._data.tree ) ];
         const icons = [];
         for ( let i = 0; i < possible.length; i++ ) {
             const name = possible[ i ];
-            if ( this._data.icons[ name ] ) {
-                const data = await this._get_encoded_image( this._data.icons[ name ], this._cwd );
+            const file = this._data.icons[ name ];
+            if ( file && file.length ) {
+                const data = await this._get_base64_image_url( file );
                 icons.push( '[data-icon="' + name + '"]::before {\n  background-image: url(' + data + ');\n}' );
             }
         }
         return icons.join( '\n' );
     }
 
-    async _build_background() {
+    /**
+     * Build theme background image css
+     * @private
+     * @return {Promise<string>}
+     */
+    async _theme_css_background_images() {
         let src = this._data.background;
         if ( this._data.theme.background.style !== 'image' || !src || !src.length ) {
             return '';
@@ -223,94 +388,107 @@ module.exports = class DashboardGenerator {
         }
         const bgs = [];
         for ( let i = 0; i < src.length; i++ ) {
-            const data = await this._get_encoded_image( src[ i ], this._cwd );
+            const data = await this._get_base64_image_url( src[ i ], { local : false } );
             bgs.push( '.background--image[data-index="' + i + '"] {\n background-image: url(' + data + ');\n}' );
         }
         this._data.bgcount = bgs.length;
         return bgs.join( '\n' );
     }
 
-    async _render_theme( file, base, extend, xbase ) {
-        const load_path = this._local_path( file, base );
-        const loaded_file = await this._local_file( load_path, base );
-        if ( !loaded_file && !loaded_file.length ) {
+    /**
+     * Render scss theme
+     * @private
+     * @param {string} file
+     * @param {string} extend
+     * @return {Promise<string|null>}
+     */
+    async _render_theme( file, extend ) {
+
+        // Load theme base file
+        const load_theme = await this._resolve_text( file, { remote : false, cwd : false, json : false } );
+        if ( !load_theme || !load_theme.text || !load_theme.text.length ) {
             return null;
         }
-        let extended = '';
+        const scss_theme = load_theme.text;
+
+        // Load custom extend
+        let scss_extend = '';
         if ( extend && extend.length ) {
-            const load_sass = this._local_path( extend, xbase );
-            const loaded_sass = await this._local_file( load_sass, xbase );
-            if ( !loaded_sass && !loaded_sass.length ) {
-                return null;
+            const load_extend = await this._resolve_text( extend, { local : false } );
+            if ( !load_extend || !load_extend.text || !load_extend.text.length ) {
+                cfx.warn( 'Skipping after: failed to load theme scss extension from: "' + extend + '"' );
+            } else {
+                scss_extend = load_extend.text;
             }
-            extended = loaded_sass;
         }
-        const theme = this._build_theme_vars();
-        const icons = await this._build_icon_css();
-        const bgs = await this._build_background();
+
+        // Build scss theme vars from data
+        const theme = this._theme_get_vars( this._data.theme ).join( '\n' );
+
+        // Build css for icons with embedded images
+        const icons = await this._theme_css_icon_images();
+
+        // Build css for background image mode
+        const bgs = await this._theme_css_background_images();
+
+        // Setup node-sass options
         const options = {
-            file : load_path,
-            data : theme + '\n' + loaded_file + icons + bgs + extended,
+            file : load_theme.path,
+            data : theme + scss_theme + icons + bgs + scss_extend,
         };
         if ( this._dev ) {
-            console.log( '> theme sass' );
-            console.log( options.data );
-            console.log( '---' );
+            cfx.warn( '-- begin: theme <<' );
+            console.log( this._data );
+            cfx.warn( '>> end: theme --' );
         } else {
             options.outputStyle = 'compressed';
         }
-        const styles = await this._render_styles( options );
+
+        // Render scss to css
+        const styles = await this._render_node_sass( options );
         if ( !styles ) {
             return '';
         }
         return styles.css.toString();
     }
 
-    async _render_js( file, base ) {
-        const load_path = this._local_path( file, base );
-        const loaded_file = await this._local_file( load_path, base );
-        if ( !loaded_file && !loaded_file.length ) {
-            return null;
-        }
-        return loaded_file;
-    }
-
-    _get_encoded_image( image, base ) {
+    /**
+     * Get image as base64 url
+     * @private
+     * @param {string} image
+     * @param {Object} from
+     * @return {Promise<string>}
+     */
+    async _get_base64_image_url( image, from ) {
         const allowed_types = [ '.png', '.jpg', '.jpeg', '.svg', '.webp', '.ico' ];
         const allowed_mimes = [ 'image/png', 'image/jpeg', 'image/jpeg', 'image/svg+xml', 'image/apng', 'image/x-icon' ];
-        const resolver = async ( image_buffer, resolve ) => {
-            let type = await fileType.fromBuffer( image_buffer );
-            if ( !type || type.ext === 'xml' ) {
+        const loaded_file = await this._resolve_file( image, null, from );
+        if ( !loaded_file || !( loaded_file.content instanceof Buffer ) ) {
+            cfx.warn( 'Failed to load image from: "' + image + '"' );
+        } else {
+            if ( !loaded_file.type || loaded_file.type.ext === 'xml' ) {
                 const ext = path.extname( image );
                 const known = allowed_types.indexOf( ext );
                 if ( known > -1 ) {
-                    type = { ext : ext.substr( 1 ) , mime : allowed_mimes[ known ] };
+                    loaded_file.type = { ext : ext.substr( 1 ) , mime : allowed_mimes[ known ] };
                 }
             }
-            if ( type && type.mime.split( '/' )[ 0 ] === 'image' ) {
-                resolve( 'data:' + type.mime + ';base64,' + image_buffer.toString( 'base64' ) );
+            if ( loaded_file.type && loaded_file.type.mime.split( '/' )[ 0 ] === 'image' ) {
+                return 'data:' + loaded_file.type.mime + ';base64,' + loaded_file.content.toString( 'base64' );
             } else {
-                resolve( image );
+                cfx.error( 'Failed to detect mimetype for: "' + loaded_file.path + '"' );
             }
-        };
-        return new Promise( ( resolve ) => {
-            if ( image.substr( 0, 4 ) === 'http' ) {
-                fetch( image ).then( async ( res ) => {
-                    const image_buffer = await res.buffer();
-                    resolver( image_buffer, resolve );
-                } ).catch( ( err ) => {
-                    console.error( err );
-                    resolve( image );
-                } );
-            } else {
-                const load_image = this._local_path( image, base );
-                const image_file = fs.readFileSync( load_image );
-                const image_buffer = Buffer.from( image_file );
-                resolver( image_buffer, resolve );
-            }
-        } );
+        }
+        return image;
     }
 
+    /**
+     * Get flag/option value
+     * @private
+     * @param {string} flag
+     * @param {*} def
+     * @return {null|boolean|string}
+     */
     _get_flag_value( flag, def = null ) {
         let value = def;
         for ( let i = 0; i < this._input.flags.length; i++ ) {
@@ -323,7 +501,12 @@ module.exports = class DashboardGenerator {
         return value;
     }
 
-    _get_theme_flags( set ) {
+    /**
+     * Set theme options from arguments
+     * @private
+     * @return {{}}
+     */
+    _set_theme_options() {
         const theme = {};
         for ( let i = 0; i < this._input.flags.length; i++ ) {
             if ( this._input.flags[ i ] instanceof Array && this._input.flags[ i ][ 0 ].substr( 0, 4 ) === '--t-' ) {
@@ -336,105 +519,140 @@ module.exports = class DashboardGenerator {
         return theme;
     }
 
+    /**
+     * Run generator
+     * @return {Promise<number>}
+     */
     async run() {
 
+        // Development mode
+        this._dev = this._input.flags.includes( '-d' ) || this._input.flags.includes( '--dev' );
+
         // Load defaults
-        this._defaults = await this._local_json( '../template/defaults.json', this._bin );
-        if ( !this._defaults ) {
-            console.error( 'Defaults are broken, please reinstall or fix what you\'ve broken.' );
+        const defaults = await this._resolve_json( 'template/defaults.json', { remote : false, cwd : false, json : false } );
+        if ( !defaults || !defaults.json ) {
+            cfx.error( 'Failed to load defaults, please reinstall or fix what you\'ve broken.' );
+            return 1;
+        }
+        if ( this._dev ) {
+            cfx.warn( '-- begin: defaults <<' );
+            console.log( defaults.json );
+            cfx.warn( '>> end: defaults --' );
+        }
+        this._defaults = defaults.json;
+
+        // Get input source
+        const input = this._input.args[ 0 ] || ''
+        if ( !input || !input.length ) {
+            cfx.error( 'Invalid input path.' );
             return 2;
         }
 
-        // Get arguments and options
-        const input = this._input.args[ 0 ] || ''
+        // Get output destination
+        let target = this._get_flag_value( '-o' ) || this._get_flag_value( '--output' );
+        target = target && target.length ? this._local_path( target, this._cwd ) : '';
 
-        // Get options
-        this._dev = this._input.flags.includes( '-d' ) || this._input.flags.includes( '--dev' );
-        const replace = this._input.flags.includes( '-r' ) || this._input.flags.includes( '--replace' );
-        const extend_sass = this._get_flag_value( '-s' ) || this._get_flag_value( '--sass' );
-
-        // Get target directory, uses cwd if not defined
-        let target_dir = this._get_flag_value( '-o' ) || this._get_flag_value( '--output' );
-        if ( !target_dir ) {
-            target_dir = '';
-        } else if ( target_dir.length && target_dir.substr( -1 ) !== '/' ) {
-            target_dir = target_dir + '/';
+        // Allow custom filename
+        if ( target && target.length ) {
+            if ( !( path.basename( target ) !== path.basename( target, path.extname( target ) ) ) ) {
+                target = path.resolve( target, 'index.html' );
+            }
         }
 
         // Target exists
-        const exists = await this._local_exists( target_dir + 'index.html', this._cwd );
+        const replace = this._input.flags.includes( '-r' ) || this._input.flags.includes( '--replace' );
+        const exists = await this._local_exists( target, this._cwd, 'W_OK' );
         if ( !replace && exists ) {
-            console.error( 'Target file already exists.' );
-            return 1;
+            cfx.error( 'Target file already exists, use the -r or --replace option to replace the target file.' );
+            return 3;
         }
 
         // Require source
-        const source = await this._load_source( input );
-        if ( !source ) {
-            console.error( 'No valid JSON map could be loaded.' );
-            return 2;
+        const source = await this._resolve_json( input, { local : false, json : false } );
+        if ( !source || !source.json ) {
+            cfx.error( 'No valid source JSON could be loaded from: "' + input + '"' );
+            return 4;
         }
-        this._data = merge( this._defaults, source );
+        if ( typeof source.json.tree !== 'object' || !Object.keys( source.json.tree ).length ) {
+            cfx.error( 'Source JSON must have a root level property named "tree" with at least one group and link.' );
+            return 5;
+        }
+        if ( this._dev ) {
+            cfx.warn( '-- begin: source <<' );
+            console.log( source.json );
+            cfx.warn( '>> end: source --' );
+        }
+        this._loaded = path.dirname( source.path );
+        this._source = source.json;
+
+        // Extend default with source as base data
+        this._data = merge( this._defaults, this._source );
 
         // Set theme option values
-        const theme_options = this._get_theme_flags( true );
+        const theme_options = this._set_theme_options();
         if ( this._dev ) {
+            cfx.warn( '-- begin: theme options <<' );
             console.log( theme_options );
+            cfx.warn( '>> end: theme options --' );
         }
 
         // Add internal data
         this._data.year = new Date().getFullYear();
+        if ( this._dev ) {
+            cfx.warn( '-- begin: compiled <<' );
+            console.log( this._data );
+            cfx.warn( '>> end: compiled --' );
+        }
 
         // Add images
         if ( this._data.logo && this._data.logo.length ) {
-            this._data.logo = await this._get_encoded_image( this._data.logo, this._cwd );
+            this._data.logo = await this._get_base64_image_url( this._data.logo, { local : false } );
         }
 
         // Render styles
-        const styles_doc = await this._render_theme( '../sass/dashboard.scss', this._bin, extend_sass, this._cwd );
+        const extend_sass = this._get_flag_value( '-s' ) || this._get_flag_value( '--sass' );
+        const styles_doc = await this._render_theme( 'sass/dashboard.scss', extend_sass );
         if ( !styles_doc ) {
-            console.error( 'Failed to render styles.' );
-            return 3;
+            cfx.error( 'Failed to render theme styles.' );
+            return 6;
         }
         this._data.styles = styles_doc;
 
         // Render js
-        const js_doc = await this._render_js( '../template/dashboard.js', this._bin );
-        if ( !js_doc ) {
-            console.error( 'Failed to render js.' );
-            return 4;
+        const js_doc = await this._resolve_text( 'template/dashboard.js', { remote : false, cwd : false, json : false } );
+        if ( !js_doc || !js_doc.text || !js_doc.text.length ) {
+            cfx.error( 'Failed to load theme javascript.' );
+            return 7;
         }
-        this._data.javascript = js_doc;
+        this._data.javascript = js_doc.text;
 
         // Render template
         let rendered_doc;
         try {
             rendered_doc = await this._render_template( this._data );
         } catch ( e ) {
-            console.log( e );
-            return 5;
+            cfx.log( e );
+            return 8;
         }
 
         // Minify
-        const minified_doc = minify( rendered_doc, this._dev ? {} : this._data.options.minify );
-
-        // Allow custom filename
-        let file_name = 'index.html';
-        if ( target_dir && target_dir.length ) {
-            if ( path.basename( target_dir ) !== path.basename( target_dir, path.extname( target_dir ) ) ) {
-                file_name = '';
-            }
+        let minified_doc;
+        try {
+            minified_doc = minify( rendered_doc, this._dev ? {} : this._data.options.minify );
+        } catch ( e ) {
+            cfx.log( e );
+            return 9;
         }
 
         // Write document
-        const doc = await this._local_write( minified_doc, target_dir + file_name, this._cwd );
+        const doc = await this._local_write( minified_doc, target );
         if ( !doc ) {
-            console.error( 'Failed to write dashboard file.' );
-            return 6;
+            cfx.error( 'Failed to write dashboard file to: "' + target + '"' );
+            return 9;
         }
 
         // End success
-        console.info( 'Dashboard ' + ( exists && replace ? 'updated' : 'created' ) + '.' );
+        cfx.success( 'Dashboard ' + ( exists && replace ? 'updated' : 'created' ) + ' at: ' + target );
         return 0;
     }
 }

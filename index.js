@@ -1,5 +1,5 @@
-/* global require, module */
-"use strict";
+/* global require, module, process */
+'use strict';
 
 /**
  * Requires
@@ -21,5 +21,6 @@ module.exports = async function cli( dir ) {
     const app = new DashboardGenerator( dir );
 
     // Run application
-    await app.run();
+    const code = await app.run();
+    process.exit( code );
 }
